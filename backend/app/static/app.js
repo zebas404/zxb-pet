@@ -279,3 +279,11 @@ function el(tag, props = {}, ...children) {
 }
 
 refreshAll();
+
+// Desktop shell (Tauri): the frameless window is dragged by the name line.
+if (WIDGET && window.__TAURI__) {
+  const handle = document.querySelector(".mood-line");
+  for (const node of [handle, ...handle.querySelectorAll("*")]) node.setAttribute("data-tauri-drag-region", "");
+  handle.style.cursor = "move";
+  handle.title = "Arrastra para mover a Zebot";
+}

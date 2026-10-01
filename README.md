@@ -4,7 +4,7 @@
 
 A Tamagotchi-style desktop pet that greets you at login with your pending tasks and what to study today. It reads an Obsidian vault (read-only) and writes a daily message with Claude, in the voice of **Zebot**: a sarcastic, gamer-slang sidekick whose energy, happiness and streak depend on your real progress.
 
-> 🚧 Work in progress: backend, homelab deployment and web UI done (F0–F3).
+> 🚧 Work in progress: backend, homelab deployment, web UI and Windows desktop shell done (F0–F4).
 
 <p align="center"><img src="docs/img/zebot-ui.png" alt="Zebot web UI with demo data: daily briefing bubble, pixel-art robot, energy/happiness/XP bars, tasks and study phase" width="360"></p>
 
@@ -77,6 +77,10 @@ uvicorn app.main:app --port 8000
 
 Then open http://127.0.0.1:8000/docs. Without `ANTHROPIC_API_KEY`, `/briefing` falls back to a template message, and that fallback is never cached.
 
+## Desktop shell
+
+[`desktop/`](desktop/README.md) is a ~4 MB Tauri v2 app: a transparent, frameless, always-on-top window that loads `/?widget` from the server, with tray menu, autostart and a sleeping fallback when the server is down. Its single local capability, creating **new** notes in the vault Inbox, is denied by default and granted at runtime only to the server origin (verified: other origins get `not allowed by ACL`).
+
 ## Deploy to the homelab
 
 See [docs/deployment.md](docs/deployment.md): one-way Syncthing with a whitelist, a hardened container and a smoke test from the PC (`scripts/smoke-test.ps1`).
@@ -101,6 +105,6 @@ curl -4 http://localhost:8000/health
 - [x] F1 · Local backend + tests
 - [x] F2 · Deployment (Syncthing + Docker Compose on Proxmox VM)
 - [x] F3 · Web UI (original pixel-art sprite)
-- [ ] F4 · Tauri shell (transparent, always-on-top, autostart)
+- [x] F4 · Tauri shell (transparent, always-on-top, autostart)
 - [ ] F5 · "I did X" capture to Inbox + pet state tuning
 - [ ] F6 · Extras (Anki, Job Hunter stats, macOS shell)

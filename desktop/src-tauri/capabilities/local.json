@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "local",
+  "description": "Página local de carga (Zebot dormido mientras no hay servidor). Solo puede mover la ventana.",
+  "windows": ["main"],
+  "permissions": ["core:window:allow-start-dragging"]
+}

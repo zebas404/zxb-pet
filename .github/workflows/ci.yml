@@ -56,3 +56,28 @@ jobs:
       - name: Container logs
         if: always()
         run: docker logs zebot || true
+
+  desktop:
+    name: Desktop shell (Windows)
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v7
+      - name: Loader sprite is in sync with the web UI
+        shell: bash
+        run: diff -u backend/app/static/zebot-sprite.js desktop/ui/zebot-sprite.js
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Unit tests (Inbox writer)
+        working-directory: desktop/src-tauri
+        run: cargo test --release
+      - name: Build zebot.exe
+        working-directory: desktop/src-tauri
+        run: cargo build --release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: zebot-windows-x64
+          path: desktop/src-tauri/target/release/zebot.exe
+          if-no-files-found: error

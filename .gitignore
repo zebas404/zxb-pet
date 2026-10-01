@@ -29,3 +29,7 @@ dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# Tauri
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
