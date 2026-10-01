@@ -127,3 +127,19 @@ def test_generate_briefing_falls_back_on_refusal(settings, monkeypatch):
     response = SimpleNamespace(content=[], stop_reason="refusal", usage=None, _request_id="r")
     fake_client(monkeypatch, response)
     assert briefing_module.generate_briefing(settings, CONTEXT, "normal")[1] == "fallback"
+
+
+def test_context_uses_relative_days_for_recent_activity(settings):
+    from datetime import date
+
+    from app.pet import compute_pet
+
+    today = date(2026, 10, 6)
+    pet = compute_pet("Zebot", {today: 1}, today, "normal")
+    recent = [{"day": "2026-10-06", "kind": "task_done", "detail": "A"}, {"day": "2026-10-03", "kind": "task_done", "detail": "B"}]
+    ctx = briefing_module.build_context(today, [], [], pet, recent)
+    assert ctx["actividad_reciente"] == [
+        {"cuando": "hoy", "tarea_cerrada": "A"},
+        {"cuando": "hace 3 días", "tarea_cerrada": "B"},
+    ]
+    assert ctx["mascota"]["racha_dias_seguidos_con_actividad"] == 1

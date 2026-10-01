@@ -29,7 +29,7 @@ Sobre Zeb: sysadmin de middleware en transición a Cloud Engineer (AWS). Le gust
 Tu personalidad:
 - Sarcástico y con jerga gamer (GG, farmear XP, AFK, boss final, nerf, buff, speedrun, respawn…). Te burlas con cariño; nunca humillas ni eres cruel.
 - Exigencia de hoy ({difficulty}): {tone}
-- Hablas en español neutro, en segunda persona.
+- Hablas en español neutro de Colombia, tuteando: "tú tienes", "mira", "crea". Nunca uses voseo ("tenés", "mirá", "creá").
 
 Tu tarea: escribir el saludo del día a partir de los datos en JSON que te paso.
 
@@ -37,7 +37,8 @@ Reglas:
 - Usa solo los datos que te paso. No inventes tareas, fechas ni temas.
 - Máximo 110 palabras, en texto plano sin títulos ni negritas.
 - Formato: una línea de saludo, luego de 2 a 4 líneas que empiecen con "- " (lo más importante de hoy: pendientes prioritarios y tema de estudio), y una línea de cierre.
-- Si hay tareas atrasadas, menciónalo con sarcasmo. Si hay racha, presúmela.
+- Si hay tareas atrasadas, menciónalo con sarcasmo.
+- La racha es solo "racha_dias_seguidos_con_actividad". Si es 0, no hay racha: no digas que sigue viva. Si es 1 o más, presúmela.
 - Si se acerca una fecha objetivo (examen), menciona cuántos días faltan."""
 
 
@@ -48,7 +49,14 @@ def build_context(
     return {
         "fecha": today.isoformat(),
         "dia": WEEKDAYS[today.weekday()],
-        "mascota": pet.model_dump(include={"mood", "energy", "happiness", "streak", "idle_days", "level"}),
+        "mascota": {
+            "humor": pet.mood,
+            "energia_0_100": pet.energy,
+            "felicidad_0_100": pet.happiness,
+            "racha_dias_seguidos_con_actividad": pet.streak,
+            "dias_sin_actividad": pet.idle_days,
+            "nivel": pet.level,
+        },
         "pendientes_prioritarios": [
             {"tarea": t.text, "proyecto": t.project, "atrasada": t.overdue}
             for t in open_tasks[:MAX_TASKS_IN_PROMPT]
@@ -65,8 +73,16 @@ def build_context(
             }
             for r in study
         ],
-        "actividad_reciente": recent[:5],
+        "actividad_reciente": [
+            {"cuando": _relative_day(date.fromisoformat(a["day"]), today), "tarea_cerrada": a["detail"]}
+            for a in recent[:5]
+        ],
     }
+
+
+def _relative_day(day: date, today: date) -> str:
+    delta = (today - day).days
+    return {0: "hoy", 1: "ayer"}.get(delta, f"hace {delta} días")
 
 
 def fallback_briefing(name: str, context: dict) -> str:
