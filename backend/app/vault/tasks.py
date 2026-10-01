@@ -12,7 +12,8 @@ TASK_FOLDERS = ["01-Proyectos", "02-Areas"]
 PENDING_NOTE = "99-Sistema/pendientes.md"
 PENDING_SECTION = "dudas abiertas"
 NEXT_STEPS_SECTION = "próximos pasos"
-TITLE_PREFIXES = ("Proyecto - ", "Roadmap - ", "Area - ", "Área - ")
+IGNORED_NOTE_TYPES = {"runbook"}
+TITLE_PREFIXES =("Proyecto - ", "Roadmap - ", "Area - ", "Área - ")
 
 PRIORITY_NEXT_STEPS = 1
 PRIORITY_CURRENT_PHASE = 2
@@ -104,7 +105,8 @@ def collect_tasks(root: Path, today: date) -> list[Task]:
     """All tasks (open and done) from active notes, deduplicated and sorted by priority."""
     tasks: list[Task] = []
     for note in iter_notes(root, TASK_FOLDERS):
-        if note.is_active:
+        # Runbook checkboxes are validation checklists, not tasks.
+        if note.is_active and str(note.frontmatter.get("tipo", "")).lower() not in IGNORED_NOTE_TYPES:
             tasks.extend(_tasks_from_note(note, today, project_name(note.title)))
 
     pending = root / PENDING_NOTE

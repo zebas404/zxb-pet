@@ -66,6 +66,10 @@ uvicorn app.main:app --port 8000
 
 Then open http://127.0.0.1:8000/docs. Without `ANTHROPIC_API_KEY`, `/briefing` falls back to a template message, and that fallback is never cached.
 
+## Deploy to the homelab
+
+See [docs/deployment.md](docs/deployment.md): one-way Syncthing with a whitelist, a hardened container and a smoke test from the PC (`scripts/smoke-test.ps1`).
+
 ## Run with Docker Compose
 
 ```bash

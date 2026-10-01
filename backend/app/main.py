@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from . import db
@@ -19,7 +20,17 @@ __version__ = "0.1.0"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
-app = FastAPI(title="Zebot API", version=__version__, description="Backend de la mascota virtual Zebot.")
+class UTF8JSONResponse(JSONResponse):
+    # Explicit charset: Windows PowerShell 5.1 otherwise decodes JSON as Latin-1.
+    media_type = "application/json; charset=utf-8"
+
+
+app = FastAPI(
+    title="Zebot API",
+    version=__version__,
+    description="Backend de la mascota virtual Zebot.",
+    default_response_class=UTF8JSONResponse,
+)
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 

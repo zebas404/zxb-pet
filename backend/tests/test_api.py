@@ -143,3 +143,7 @@ def test_context_uses_relative_days_for_recent_activity(settings):
         {"cuando": "hace 3 días", "tarea_cerrada": "B"},
     ]
     assert ctx["mascota"]["racha_dias_seguidos_con_actividad"] == 1
+
+
+def test_json_declares_utf8_charset(client):
+    assert client.get("/health").headers["content-type"] == "application/json; charset=utf-8"

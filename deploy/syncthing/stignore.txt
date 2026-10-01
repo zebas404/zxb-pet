@@ -1,0 +1,17 @@
+// Patrones de Syncthing para el vault (carpeta "Send Only" en el PC).
+// Pegar en: Syncthing GUI (PC) → carpeta SegundoCerebro → Editar → Patrones a ignorar.
+// Lista blanca: solo se envía lo que Zebot lee. Todo lo demás (CVs, PDFs,
+// adjuntos, configuración de Obsidian) se queda en el PC.
+// La primera regla que coincide gana, por eso "*" va al final.
+
+!/01-Proyectos
+!/02-Areas
+!/00-Inbox
+!/99-Sistema/pendientes.md
+
+// Archivos del sistema que se pueden borrar si bloquean una carpeta.
+(?d).DS_Store
+(?d)Thumbs.db
+(?d)desktop.ini
+
+*

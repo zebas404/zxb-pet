@@ -63,3 +63,7 @@ def test_sorted_open_first_then_priority(vault):
 def test_ids_are_stable(vault):
     first = {t.id for t in collect_tasks(vault, TODAY)}
     assert first == {t.id for t in collect_tasks(vault, TODAY)}
+
+
+def test_runbooks_inside_projects_are_ignored(vault):
+    assert "El servicio responde." not in by_text(collect_tasks(vault, TODAY))
