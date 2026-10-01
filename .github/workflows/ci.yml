@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -v
+
+  docker:
+    name: Docker build + smoke test
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          load: true
+          tags: zebot-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run container against the fixture vault
+        run: |
+          docker run -d --name zebot -p 8000:8000 --read-only --tmpfs /tmp -v zebot-data:/data \
+            -v "$PWD/backend/tests/fixtures/vault:/vault:ro" zebot-api:ci
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8000/health && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8000/health | grep '"vault_ok":true'
+          curl -sf http://127.0.0.1:8000/tasks > /dev/null
+          curl -sf http://127.0.0.1:8000/briefing | grep '"source":"fallback"'
+      - name: Container logs
+        if: always()
+        run: docker logs zebot || true

@@ -1,5 +1,7 @@
 # zxb-pet · Zebot
 
+[![CI](https://github.com/zebas404/zxb-pet/actions/workflows/ci.yml/badge.svg)](https://github.com/zebas404/zxb-pet/actions/workflows/ci.yml)
+
 A Tamagotchi-style desktop pet that greets you at login with your pending tasks and what to study today. It reads an Obsidian vault (read-only) and writes a daily message with Claude, in the voice of **Zebot**: a sarcastic, gamer-slang sidekick whose energy, happiness and streak depend on your real progress.
 
 > 🚧 Work in progress: Phase 1 (local backend) done.
