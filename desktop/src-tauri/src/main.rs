@@ -18,14 +18,14 @@ use serde::{Deserialize, Serialize};
 use tauri::ipc::CapabilityBuilder;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, PhysicalPosition, State, Url, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, LogicalPosition, Manager, State, Url, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 const WINDOW_LABEL: &str = "main";
 const WINDOW_SIZE: (f64, f64) = (300.0, 420.0);
-const SCREEN_MARGIN: i32 = 16;
+const SCREEN_MARGIN: f64 = 16.0;
 
 static LOADER_URL: OnceLock<Url> = OnceLock::new();
 
@@ -106,17 +106,28 @@ fn reload(app: &AppHandle) {
     }
 }
 
-fn place_bottom_right(win: &tauri::WebviewWindow) {
-    let Ok(Some(monitor)) = win.primary_monitor() else { return };
+/// Bottom-right corner of the primary monitor's work area, in logical pixels.
+fn bottom_right(app: &AppHandle) -> Option<(f64, f64)> {
+    let monitor = app.primary_monitor().ok()??;
+    let scale = monitor.scale_factor();
     let area = monitor.work_area();
-    let Ok(size) = win.outer_size() else { return };
-    let x = area.position.x + area.size.width as i32 - size.width as i32 - SCREEN_MARGIN;
-    let y = area.position.y + area.size.height as i32 - size.height as i32 - SCREEN_MARGIN;
-    let _ = win.set_position(PhysicalPosition::new(x, y));
+    let right = (area.position.x as f64 + area.size.width as f64) / scale;
+    let bottom = (area.position.y as f64 + area.size.height as f64) / scale;
+    Some((right - WINDOW_SIZE.0 - SCREEN_MARGIN, bottom - WINDOW_SIZE.1 - SCREEN_MARGIN))
+}
+
+/// Tray action: bring Zebot back to the corner (handy with several monitors).
+fn move_to_corner(app: &AppHandle) {
+    if let (Some(win), Some((x, y))) = (app.get_webview_window(WINDOW_LABEL), bottom_right(app)) {
+        let _ = win.set_position(LogicalPosition::new(x, y));
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
 }
 
 fn build_tray(app: &AppHandle, server_url: String) -> tauri::Result<()> {
     let toggle = MenuItem::with_id(app, "toggle", "Mostrar / ocultar", true, None::<&str>)?;
+    let corner = MenuItem::with_id(app, "corner", "Llevar a la esquina", true, None::<&str>)?;
     let reload_item = MenuItem::with_id(app, "reload", "Recargar", true, None::<&str>)?;
     let browser = MenuItem::with_id(app, "browser", "Abrir en el navegador", true, None::<&str>)?;
     let autostart_on = app.autolaunch().is_enabled().unwrap_or(false);
@@ -126,6 +137,7 @@ fn build_tray(app: &AppHandle, server_url: String) -> tauri::Result<()> {
         app,
         &[
             &toggle,
+            &corner,
             &reload_item,
             &browser,
             &PredefinedMenuItem::separator(app)?,
@@ -143,6 +155,7 @@ fn build_tray(app: &AppHandle, server_url: String) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "toggle" => toggle_window(app),
+            "corner" => move_to_corner(app),
             "reload" => reload(app),
             "browser" => {
                 let _ = app.opener().open_url(server_url.clone(), None::<&str>);
@@ -188,9 +201,14 @@ fn main() {
 
             let allowed_prefix = format!("{server}/");
             let init = format!("window.ZEBOT_SERVER = {};", serde_json::to_string(&server)?);
-            let win = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::App("index.html".into()))
+            let mut builder = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::App("index.html".into()))
                 .title("Zebot")
-                .inner_size(WINDOW_SIZE.0, WINDOW_SIZE.1)
+                .inner_size(WINDOW_SIZE.0, WINDOW_SIZE.1);
+            // Created directly at the corner: moving a hidden window afterwards is unreliable on Windows.
+            if let Some((x, y)) = bottom_right(&handle) {
+                builder = builder.position(x, y);
+            }
+            let win = builder
                 .resizable(false)
                 .decorations(false)
                 .transparent(true)
@@ -210,8 +228,11 @@ fn main() {
             if let Ok(url) = win.url() {
                 let _ = LOADER_URL.set(url);
             }
-            place_bottom_right(&win);
-            let _ = win.restore_state(StateFlags::POSITION);
+            // Only restore a position the user actually saved (dragged, then quit).
+            let saved = handle.path().app_config_dir().map(|d| d.join(".window-state.json").exists());
+            if saved.unwrap_or(false) {
+                let _ = win.restore_state(StateFlags::POSITION);
+            }
             win.show()?;
 
             if first_run {
