@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from .markdown import Note, clean_text, iter_notes, normalize, parse_list_items, parse_phase_heading, read_note
+from .markdown import Note, clean_text, iter_notes, normalize, parse_list_items, parse_phase_heading, try_read_note
 
 TASK_FOLDERS = ["01-Proyectos", "02-Areas"]
 PENDING_NOTE = "99-Sistema/pendientes.md"
@@ -110,8 +110,7 @@ def collect_tasks(root: Path, today: date) -> list[Task]:
             tasks.extend(_tasks_from_note(note, today, project_name(note.title)))
 
     pending = root / PENDING_NOTE
-    if pending.is_file():
-        note = read_note(pending, root)
+    if pending.is_file() and (note := try_read_note(pending, root)):
         tasks.extend(_tasks_from_note(note, today, "Pendientes del agente", only_section=PENDING_SECTION))
 
     tasks = _dedupe(tasks)

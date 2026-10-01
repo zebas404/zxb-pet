@@ -1,12 +1,15 @@
 """Low-level helpers to read Obsidian notes: frontmatter, headings, list items."""
 
 import calendar
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
 import yaml
+
+log = logging.getLogger(__name__)
 
 FRONTMATTER_RE = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.DOTALL)
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
@@ -65,6 +68,15 @@ def read_note(path: Path, root: Path) -> Note:
     return Note(path=path, rel=path.relative_to(root).as_posix(), frontmatter=fm, body=body)
 
 
+def try_read_note(path: Path, root: Path) -> Note | None:
+    """Read a note, or log and skip it if it can't be read (e.g. permissions)."""
+    try:
+        return read_note(path, root)
+    except OSError as e:
+        log.warning("Skipping unreadable note %s: %s", path, e)
+        return None
+
+
 def iter_notes(root: Path, folders: list[str]) -> list[Note]:
     notes: list[Note] = []
     for folder in folders:
@@ -74,7 +86,8 @@ def iter_notes(root: Path, folders: list[str]) -> list[Note]:
         for path in sorted(base.rglob("*.md")):
             if path.name.startswith("_"):
                 continue
-            notes.append(read_note(path, root))
+            if note := try_read_note(path, root):
+                notes.append(note)
     return notes
 
 

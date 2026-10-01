@@ -7,7 +7,13 @@
 !/01-Proyectos
 !/02-Areas
 !/00-Inbox
+
+// De 99-Sistema solo pendientes.md. La carpeta se incluye también (sin el
+// resto de su contenido) para que Syncthing la registre y la cree con
+// permisos 755. Si no, la crea "de paso" con 750 y el contenedor no entra.
 !/99-Sistema/pendientes.md
+/99-Sistema/*
+!/99-Sistema
 
 // Archivos del sistema que se pueden borrar si bloquean una carpeta.
 (?d).DS_Store

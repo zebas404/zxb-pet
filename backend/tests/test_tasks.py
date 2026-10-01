@@ -67,3 +67,20 @@ def test_ids_are_stable(vault):
 
 def test_runbooks_inside_projects_are_ignored(vault):
     assert "El servicio responde." not in by_text(collect_tasks(vault, TODAY))
+
+
+def test_unreadable_note_is_skipped_not_fatal(vault, monkeypatch, caplog):
+    from app.vault import markdown
+
+    real = markdown.read_note
+
+    def flaky(path, root):
+        if path.name == "pendientes.md":
+            raise PermissionError(13, "Permission denied")
+        return real(path, root)
+
+    monkeypatch.setattr(markdown, "read_note", flaky)
+    tasks = collect_tasks(vault, TODAY)
+    assert tasks  # the rest of the vault still works
+    assert all(t.project != "Pendientes del agente" for t in tasks)
+    assert "Skipping unreadable note" in caplog.text
