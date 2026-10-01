@@ -1,0 +1,25 @@
+services:
+  zebot:
+    build: ./backend
+    image: zebot-api:latest
+    container_name: zebot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      VAULT_PATH: /vault
+      DATA_DIR: /data
+    ports:
+      - "${ZEBOT_PORT:-8000}:8000"
+    volumes:
+      - "${VAULT_HOST_PATH:?Define VAULT_HOST_PATH en .env}:/vault:ro"
+      - zebot-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.5
+
+volumes:
+  zebot-data:
