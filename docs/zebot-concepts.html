@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zebot · conceptos</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0B1622; --panel:#0F1E2D; --text:#E6EDF3; --muted:#8FA3B5; --pet:#2EC4B6; --vio:#9D8CFF; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"JetBrains Mono", monospace;
+         background-image: linear-gradient(rgba(46,196,182,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(46,196,182,.05) 1px, transparent 1px);
+         background-size: 24px 24px; padding: 24px 16px 48px; }
+  h1 { font-family:"Space Grotesk", sans-serif; margin:0 0 4px; font-size: 28px; }
+  h1 span { background: linear-gradient(90deg, var(--pet), var(--vio)); -webkit-background-clip:text; color:transparent; }
+  p.lead { color:var(--muted); margin:0 0 24px; max-width: 760px; }
+  .design { background:var(--panel); border:1px solid #1C3346; border-radius:12px; padding:20px; margin-bottom:20px; max-width: 1100px; }
+  .design h2 { font-family:"Space Grotesk", sans-serif; margin:0 0 4px; font-size:20px; }
+  .design h2 b { color:var(--vio); }
+  .design p { color:var(--muted); margin:0 0 16px; font-size:13px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; }
+  .hero canvas { width:192px; height:192px; }
+  .mood { text-align:center; font-size:12px; color:var(--muted); }
+  .mood canvas { width:96px; height:96px; display:block; margin-bottom:6px; }
+  canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+  .sep { width:1px; align-self:stretch; background:#1C3346; margin:0 8px; }
+</style>
+</head>
+<body>
+<h1>Zebot · <span>conceptos de personaje</span></h1>
+<p class="lead">Tres diseños originales en pixel art (32×32), con la paleta "Petróleo nocturno". Cada uno muestra sus 6 estados. Se mueven solos: flotan, parpadean y cambian sus luces según el humor. Elige uno, o pide una mezcla.</p>
+<div id="designs"></div>
+
+<script>
+const C = {
+  K:"#0B1622", D:"#13283A", B:"#0B6E75", L:"#2EC4B6", W:"#E6EDF3", S:"#06111A",
+  V:"#9D8CFF", P:"#5B3FD6", A:"#FFC857", R:"#FF6B6B", Z:"#2A4A5A",
+};
+const MOODS = [
+  ["feliz","feliz"], ["normal","normal"], ["cansado","cansado"],
+  ["triste","triste"], ["agotado","agotado"], ["dormido","dormido (offline)"],
+];
+const FACE = { feliz:C.L, normal:C.L, cansado:C.A, triste:C.V, agotado:C.R, dormido:C.Z };
+
+function mk(ctx){
+  const px=(x,y,c)=>{ ctx.fillStyle=c; ctx.fillRect(x,y,1,1); };
+  const rect=(x,y,w,h,c)=>{ ctx.fillStyle=c; ctx.fillRect(x,y,w,h); };
+  return {px,rect};
+}
+
+// Face drawn in a 16x10 area starting at (ox, oy).
+function face(g, ox, oy, mood, t){
+  const c = FACE[mood];
+  const blink = mood!=="dormido" && mood!=="agotado" && (t % 3200) < 140;
+  for (const ex of [ox+3, ox+10]) {
+    const ey = oy+2;
+    if (blink) { g.rect(ex, ey+2, 3, 1, c); continue; }
+    switch (mood) {
+      case "feliz":   g.px(ex,ey+2,c); g.px(ex+1,ey+1,c); g.px(ex+2,ey+2,c); break;
+      case "normal":  g.rect(ex,ey,3,3,c); g.px(ex,ey,C.W); break;
+      case "cansado": g.rect(ex,ey+2,3,1,c); g.rect(ex,ey+1,3,1,C.D); break;
+      case "triste":  g.rect(ex,ey+1,3,2,c); g.px(ex === ox+3 ? ex+2 : ex, ey-1, c);
+                      if (ex === ox+3 && Math.floor(t/400)%2) g.px(ex, ey+4, C.V); break;
+      case "agotado": [[0,0],[2,0],[1,1],[0,2],[2,2]].forEach(([a,b])=>g.px(ex+a,ey+b,c)); break;
+      case "dormido": g.rect(ex,ey+2,3,1,c); break;
+    }
+  }
+  const mx = ox+5, my = oy+7;
+  switch (mood) {
+    case "feliz":   g.px(mx,my-1,c); g.rect(mx+1,my,4,1,c); g.px(mx+5,my-1,c); break;
+    case "normal":  g.px(mx+1,my-1,c); g.rect(mx+2,my,2,1,c); g.px(mx+4,my-1,c); break;
+    case "cansado": g.rect(mx+2,my,3,1,c); break;
+    case "triste":  g.px(mx+1,my+1,c); g.rect(mx+2,my,2,1,c); g.px(mx+4,my+1,c); break;
+    case "agotado": for (let i=0;i<6;i++) g.px(mx+i, my+(i%2), c); break;
+    case "dormido": g.rect(mx+2,my,2,1,c); break;
+  }
+}
+
+function zzz(g, x, y, t){
+  const f = Math.floor(t/500)%3;
+  const pts = [[0,0],[1,0],[2,0],[1,1],[0,2],[1,2],[2,2]]; // a tiny "z"
+  for (let i=0;i<=f;i++) pts.forEach(([a,b])=>g.px(x+i*3+a, y-i*3+b, C.Z));
+}
+
+function leds(mood, t){
+  const on = Math.floor(t/350)%2===0;
+  return {
+    feliz:  [C.L, on?C.V:C.L, C.V],
+    normal: [C.L, on?C.L:C.B, C.B],
+    cansado:[C.A, on?C.A:C.D, C.D],
+    triste: [C.V, C.D, C.D],
+    agotado:[on?C.R:C.D, C.D, C.D],
+    dormido:[C.Z, C.D, C.D],
+  }[mood];
+}
+
+const bob = (t, mood) => mood==="dormido" || mood==="agotado" ? 0 : (Math.floor(t/450)%2);
+
+// A · "Monitor": a small robot with a CRT head; the face lives on the screen.
+function monitor(ctx, mood, t){
+  const g = mk(ctx), y = bob(t,mood);
+  const tip = { feliz:C.V, normal:C.L, cansado:C.A, triste:C.V, agotado:C.R, dormido:C.Z }[mood];
+  g.rect(15,2+y,2,4,C.K); g.rect(14,0+y,4,3,C.K); g.rect(15,1+y,2,1, (Math.floor(t/600)%2 && mood!=="dormido")?tip:C.D);
+  g.rect(5,6+y,22,15,C.K); g.rect(6,7+y,20,13,C.B); g.rect(6,7+y,20,1,C.L); g.rect(6,7+y,1,12,C.L);
+  g.rect(8,9+y,16,9,C.S);
+  face(g, 8, 8+y, mood, t);
+  if (mood==="dormido") zzz(g, 22, 4+y, t);
+  g.rect(14,21+y,4,1,C.K);
+  g.rect(9,22+y,14,7,C.K); g.rect(10,23+y,12,5,C.D);
+  leds(mood,t).forEach((c,i)=>g.rect(12+i*3,24+y,2,1,c));
+  g.rect(13,26+y,6,1,C.B);
+  g.rect(7,23+y,2,4,C.K); g.rect(23,23+y,2,4,C.K); g.px(7,24+y,C.B); g.px(24,24+y,C.B);
+  g.rect(11,29+y,3,2,C.K); g.rect(18,29+y,3,2,C.K); g.rect(10,31,5,1,C.D); g.rect(17,31,5,1,C.D);
+}
+
+// B · "Rack": a living mini server rack; drive bays blink with the mood.
+function rack(ctx, mood, t){
+  const g = mk(ctx), y = bob(t,mood);
+  g.rect(7,3+y,18,25,C.K); g.rect(8,4+y,16,23,C.D);
+  g.rect(8,4+y,16,1,C.L);
+  g.rect(9,6+y,14,9,C.S); face(g, 8, 5+y, mood, t);
+  const l = leds(mood,t);
+  for (let i=0;i<3;i++){
+    const by = 17+i*3+y;
+    g.rect(9,by,14,2,C.B); g.rect(9,by,14,1,C.L);
+    g.px(21,by+1,l[i]); g.px(19,by+1,l[(i+1)%3]);
+  }
+  g.rect(5,13+y,2,5,C.K); g.rect(25,13+y,2,5,C.K);
+  if (mood==="feliz") { g.rect(4,10+y,2,3,C.K); g.rect(26,10+y,2,3,C.K); }
+  g.rect(9,28+y,3,2,C.K); g.rect(20,28+y,3,2,C.K); g.rect(8,30,6,1,C.D); g.rect(19,30,6,1,C.D);
+  if (mood==="dormido") zzz(g, 23, 2+y, t);
+}
+
+// C · "Orbe": a floating droid with a visor band and side fins.
+function orb(ctx, mood, t){
+  const g = mk(ctx);
+  const y = mood==="dormido" ? 3 : (mood==="agotado" ? 2 : [0,1,2,1][Math.floor(t/300)%4]);
+  const rows = [[11,10],[9,14],[7,18],[6,20],[5,22],[5,22],[4,24],[4,24],[4,24],[4,24],[4,24],[4,24],[5,22],[5,22],[6,20],[7,18],[9,14],[11,10]];
+  rows.forEach(([x,w],i)=>{ g.rect(x,5+i+y,w,1,C.K); g.rect(x+1,5+i+y,w-2,1,i<3?C.L:C.B); });
+  g.rect(9,7+y,3,1,C.W);
+  g.rect(6,11+y,20,8,C.K); g.rect(7,12+y,18,6,C.S);
+  face(g, 8, 10+y, mood, t);
+  const fin = mood==="feliz" && Math.floor(t/300)%2 ? -1 : 0;
+  g.rect(1,12+y+fin,3,4,C.P); g.rect(28,12+y+fin,3,4,C.P); g.rect(2,13+y+fin,1,2,C.V); g.rect(29,13+y+fin,1,2,C.V);
+  if (mood!=="dormido" && mood!=="agotado") { const fl = Math.floor(t/150)%2; g.rect(15,23+y,2,1+fl, mood==="cansado"?C.A:C.V); }
+  ctx.globalAlpha = .35; g.rect(10-y,29,12+2*y,1,C.D); ctx.globalAlpha = 1;
+  if (mood==="dormido") zzz(g, 24, 4+y, t);
+}
+
+const floatY = (t, mood) => mood==="dormido" ? 3 : (mood==="agotado" ? 2 : [0,1,2,1][Math.floor(t/300)%4]);
+const tipColor = (mood) => ({ feliz:C.V, normal:C.L, cansado:C.A, triste:C.V, agotado:C.R, dormido:C.Z })[mood];
+function thruster(g, x, y, t, mood){
+  if (mood==="dormido" || mood==="agotado") return;
+  const fl = Math.floor(t/150)%2;
+  g.rect(x,y,2,1+fl, mood==="cansado"?C.A:C.V);
+}
+function shadow(ctx, g, y){ ctx.globalAlpha=.35; g.rect(10-y,30,12+2*y,1,C.D); ctx.globalAlpha=1; }
+
+// D · Monitor volador: CRT head floating with orb fins and a thruster.
+function flyingMonitor(ctx, mood, t){
+  const g = mk(ctx), y = floatY(t,mood);
+  const tip = tipColor(mood);
+  g.rect(15,3+y,2,3,C.K); g.rect(14,1+y,4,3,C.K); g.rect(15,2+y,2,1,(Math.floor(t/600)%2 && mood!=="dormido")?tip:C.D);
+  g.rect(5,6+y,22,16,C.K); g.rect(6,7+y,20,14,C.B); g.rect(6,7+y,20,1,C.L); g.rect(6,7+y,1,13,C.L);
+  g.rect(8,9+y,16,9,C.S); face(g, 8, 8+y, mood, t);
+  leds(mood,t).forEach((c,i)=>g.px(19+i*2,19+y,c));
+  const fin = mood==="feliz" && Math.floor(t/300)%2 ? -1 : 0;
+  g.rect(1,11+y+fin,3,5,C.P); g.rect(28,11+y+fin,3,5,C.P); g.rect(2,12+y+fin,1,3,C.V); g.rect(29,12+y+fin,1,3,C.V);
+  g.rect(13,22+y,6,2,C.K); g.rect(14,22+y,4,1,C.D);
+  thruster(g, 15, 24+y, t, mood);
+  shadow(ctx, g, y);
+  if (mood==="dormido") zzz(g, 23, 3+y, t);
+}
+
+// E · Orbe con antena: the round orb body with the monitor's antenna.
+function antennaOrb(ctx, mood, t){
+  const g = mk(ctx), y = floatY(t,mood);
+  const tip = tipColor(mood);
+  g.rect(15,2+y,2,4,C.K); g.rect(14,0+y,4,3,C.K); g.rect(15,1+y,2,1,(Math.floor(t/600)%2 && mood!=="dormido")?tip:C.D);
+  const rows = [[11,10],[9,14],[7,18],[6,20],[5,22],[5,22],[4,24],[4,24],[4,24],[4,24],[4,24],[4,24],[5,22],[5,22],[6,20],[7,18],[9,14],[11,10]];
+  rows.forEach(([x,w],i)=>{ g.rect(x,6+i+y,w,1,C.K); g.rect(x+1,6+i+y,w-2,1,i<3?C.L:C.B); });
+  g.rect(9,8+y,3,1,C.W);
+  g.rect(7,11+y,18,10,C.K); g.rect(8,12+y,16,8,C.S); face(g, 8, 11+y, mood, t);
+  const fin = mood==="feliz" && Math.floor(t/300)%2 ? -1 : 0;
+  g.rect(1,13+y+fin,3,4,C.P); g.rect(28,13+y+fin,3,4,C.P); g.rect(2,14+y+fin,1,2,C.V); g.rect(29,14+y+fin,1,2,C.V);
+  thruster(g, 15, 24+y, t, mood);
+  shadow(ctx, g, y);
+  if (mood==="dormido") zzz(g, 24, 4+y, t);
+}
+
+// F · Monitor-Rack: CRT head with antenna on top of a small rack body.
+function monitorRack(ctx, mood, t){
+  const g = mk(ctx), y = bob(t,mood);
+  const tip = tipColor(mood);
+  g.rect(15,1+y,2,3,C.K); g.rect(14,0+y,4,2,C.K); g.rect(15,0+y,2,1,(Math.floor(t/600)%2 && mood!=="dormido")?tip:C.D);
+  g.rect(6,4+y,20,14,C.K); g.rect(7,5+y,18,12,C.B); g.rect(7,5+y,18,1,C.L); g.rect(7,5+y,1,11,C.L);
+  g.rect(9,7+y,14,8,C.S); face(g, 8, 6+y, mood, t);
+  g.rect(14,18+y,4,1,C.K);
+  g.rect(8,19+y,16,10,C.K); g.rect(9,20+y,14,8,C.D);
+  const l = leds(mood,t);
+  for (let i=0;i<3;i++){
+    const by = 20+i*3+y;
+    g.rect(10,by,12,2,C.B); g.rect(10,by,12,1,C.L);
+    g.px(20,by+1,l[i]); g.px(18,by+1,l[(i+1)%3]);
+  }
+  g.rect(6,20+y,2,5,C.K); g.rect(24,20+y,2,5,C.K);
+  if (mood==="feliz") { g.rect(5,17+y,2,3,C.K); g.rect(25,17+y,2,3,C.K); }
+  g.rect(10,29+y,3,2,C.K); g.rect(19,29+y,3,2,C.K); g.rect(9,31,5,1,C.D); g.rect(18,31,5,1,C.D);
+  if (mood==="dormido") zzz(g, 23, 2+y, t);
+}
+
+// G · Rack con antena: one-piece rack, CRT-framed face screen and antenna.
+function antennaRack(ctx, mood, t){
+  const g = mk(ctx), y = bob(t,mood);
+  const tip = tipColor(mood);
+  g.rect(15,1+y,2,3,C.K); g.rect(14,0+y,4,2,C.K); g.rect(15,0+y,2,1,(Math.floor(t/600)%2 && mood!=="dormido")?tip:C.D);
+  g.rect(6,4+y,20,25,C.K); g.rect(7,5+y,18,23,C.D); g.rect(7,5+y,18,1,C.L);
+  g.rect(8,6+y,16,11,C.B); g.rect(8,6+y,16,1,C.L); g.rect(8,6+y,1,10,C.L);
+  g.rect(9,7+y,14,9,C.S); face(g, 8, 6+y, mood, t);
+  const l = leds(mood,t);
+  for (let i=0;i<3;i++){
+    const by = 19+i*3+y;
+    g.rect(9,by,14,2,C.B); g.rect(9,by,14,1,C.L);
+    g.px(21,by+1,l[i]); g.px(19,by+1,l[(i+1)%3]);
+  }
+  g.rect(4,14+y,2,5,C.K); g.rect(26,14+y,2,5,C.K);
+  if (mood==="feliz") { g.rect(3,11+y,2,3,C.K); g.rect(27,11+y,2,3,C.K); }
+  g.rect(9,29+y,3,2,C.K); g.rect(20,29+y,3,2,C.K); g.rect(8,31,6,1,C.D); g.rect(19,31,6,1,C.D);
+  if (mood==="dormido") zzz(g, 23, 2+y, t);
+}
+
+const DESIGNS = [
+  ["F", "Monitor-Rack (híbrido A + B)", "La cabeza CRT del Monitor, con su antena, sobre un cuerpo de rack con bahías y LEDs que parpadean según el humor. Robot completo: cabeza, cuerpo, brazos y piernas.", monitorRack],
+  ["G", "Rack con antena (híbrido B + A)", "Un rack de una sola pieza con la cara en una pantalla con marco CRT y la antena del Monitor encima. Más compacto: parece un servidor que cobró vida.", antennaRack],
+  ["A", "Monitor", "Robot pequeño con cabeza de monitor CRT. La cara vive en la pantalla y la antena parpadea con su humor. Es el más \"bot\" y el más fácil de leer en tamaño pequeño.", monitor],
+  ["B", "Rack", "Un mini rack de servidores con vida propia. La cara está en el panel frontal y las bahías parpadean como LEDs reales. Es el guiño homelab/cloud más directo.", rack],
+  ["C", "Orbe", "Un dron flotante con visor y aletas violetas, y un propulsor que se enciende. Se mueve más que los otros: el más \"mascota\" de los tres.", orb],
+];
+
+const canvases = [];
+const root = document.getElementById("designs");
+for (const [letter, name, desc, draw] of DESIGNS) {
+  const sec = document.createElement("section"); sec.className = "design";
+  sec.innerHTML = `<h2><b>${letter}</b> · ${name}</h2><p>${desc}</p>`;
+  const row = document.createElement("div"); row.className = "row";
+  const hero = document.createElement("div"); hero.className = "hero";
+  const hc = document.createElement("canvas"); hc.width = hc.height = 32; hero.appendChild(hc);
+  row.appendChild(hero); canvases.push([hc, draw, "normal"]);
+  const sep = document.createElement("div"); sep.className = "sep"; row.appendChild(sep);
+  for (const [mood, label] of MOODS) {
+    const m = document.createElement("div"); m.className = "mood";
+    const c = document.createElement("canvas"); c.width = c.height = 32;
+    m.appendChild(c); m.appendChild(document.createTextNode(label));
+    row.appendChild(m); canvases.push([c, draw, mood]);
+  }
+  sec.appendChild(row); root.appendChild(sec);
+}
+function frame(t){
+  for (const [c, draw, mood] of canvases) {
+    const ctx = c.getContext("2d"); ctx.clearRect(0,0,32,32); draw(ctx, mood, t);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

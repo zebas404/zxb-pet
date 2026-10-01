@@ -1,12 +1,15 @@
 """Zebot API: reads the Obsidian vault (read-only) and serves the pet's state."""
 
 import logging
+import threading
 from dataclasses import dataclass
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import db
@@ -16,7 +19,9 @@ from .pet import PetState, compute_pet
 from .vault.study import Roadmap, collect_study
 from .vault.tasks import Task, collect_tasks
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -31,8 +36,12 @@ app = FastAPI(
     description="Backend de la mascota virtual Zebot.",
     default_response_class=UTF8JSONResponse,
 )
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+# The UI fires /pet, /tasks and /study in parallel; snapshots must not race.
+_sync_lock = threading.Lock()
 
 
 @dataclass
@@ -60,7 +69,7 @@ def take_snapshot(settings: Settings) -> Snapshot:
     today = settings.today()
     tasks = collect_tasks(settings.vault_path, today)
     study = collect_study(settings.vault_path, today)
-    with db.connect(settings.db_path) as conn:
+    with _sync_lock, db.connect(settings.db_path) as conn:
         db.sync_tasks(conn, tasks, today)
         activity = db.activity_by_day(conn)
         since = db.tracking_since(conn)
@@ -102,6 +111,12 @@ class BriefingResponse(BaseModel):
 
 
 # --- Endpoints ---------------------------------------------------------------
+
+
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    """Pet UI. ``/?widget`` is the compact mode used by the desktop shell."""
+    return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/health", response_model=Health)

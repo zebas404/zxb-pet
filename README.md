@@ -4,7 +4,17 @@
 
 A Tamagotchi-style desktop pet that greets you at login with your pending tasks and what to study today. It reads an Obsidian vault (read-only) and writes a daily message with Claude, in the voice of **Zebot**: a sarcastic, gamer-slang sidekick whose energy, happiness and streak depend on your real progress.
 
-> 🚧 Work in progress: Phase 1 (local backend) done.
+> 🚧 Work in progress: backend, homelab deployment and web UI done (F0–F3).
+
+<p align="center"><img src="docs/img/zebot-ui.png" alt="Zebot web UI with demo data: daily briefing bubble, pixel-art robot, energy/happiness/XP bars, tasks and study phase" width="360"></p>
+
+## The pet
+
+Zebot is **original pixel art drawn in code** (32×32, no image assets): a CRT-monitor head on a tiny server-rack body, in the author's brand palette. Its face, antenna and drive-bay LEDs change with its mood (`feliz`, `normal`, `cansado`, `triste`, `agotado`), and it falls asleep (`dormido`) when the API is unreachable. Design exploration: [`docs/zebot-concepts.html`](docs/zebot-concepts.html).
+
+- `GET /` is the full UI: briefing with a typewriter effect, stats, top tasks and the current study phase. It works on desktop and mobile.
+- `GET /?widget` is the compact, transparent-background mode loaded by the desktop shell.
+- Vanilla HTML/CSS/JS (ES modules), with no build step and no dependencies. Text from the vault or the LLM is rendered with `textContent`, never as HTML.
 
 ## Architecture
 
@@ -30,6 +40,7 @@ flowchart LR
 
 | Endpoint | Description |
 |---|---|
+| `GET /` | Pet web UI (`?widget` for the compact desktop mode) |
 | `GET /health` | Liveness, vault mount and config check |
 | `GET /tasks` | Open tasks parsed from the vault (`?include_done=true`, `?limit=N`) |
 | `GET /study` | Current and next phase of each study roadmap |
@@ -88,8 +99,8 @@ curl -4 http://localhost:8000/health
 
 - [x] F0 · Exploration and parser rules
 - [x] F1 · Local backend + tests
-- [ ] F2 · Deployment (Syncthing + Docker Compose on Proxmox VM)
-- [ ] F3 · Web UI (original pixel-art sprite)
+- [x] F2 · Deployment (Syncthing + Docker Compose on Proxmox VM)
+- [x] F3 · Web UI (original pixel-art sprite)
 - [ ] F4 · Tauri shell (transparent, always-on-top, autostart)
 - [ ] F5 · "I did X" capture to Inbox + pet state tuning
 - [ ] F6 · Extras (Anki, Job Hunter stats, macOS shell)

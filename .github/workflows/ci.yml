@@ -50,6 +50,8 @@ jobs:
           done
           curl -sf http://127.0.0.1:8000/health | grep '"vault_ok":true'
           curl -sf http://127.0.0.1:8000/tasks > /dev/null
+          curl -sf http://127.0.0.1:8000/ | grep -q '<title>Zebot</title>'
+          curl -sf http://127.0.0.1:8000/static/zebot-sprite.js > /dev/null
           curl -sf http://127.0.0.1:8000/briefing | grep '"source":"fallback"'
       - name: Container logs
         if: always()

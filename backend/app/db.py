@@ -41,7 +41,7 @@ def _now() -> str:
 @contextmanager
 def connect(path: Path) -> Iterator[sqlite3.Connection]:
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, timeout=10)
     conn.row_factory = sqlite3.Row
     try:
         conn.executescript(SCHEMA)
@@ -65,7 +65,7 @@ def sync_tasks(conn: sqlite3.Connection, tasks: list[Task], today: date) -> int:
         before = known.get(task.id)
         if before is None:
             conn.execute(
-                "INSERT INTO task_state (id, text, done, first_seen, updated_at) VALUES (?, ?, ?, ?, ?)",
+                "INSERT OR IGNORE INTO task_state (id, text, done, first_seen, updated_at) VALUES (?, ?, ?, ?, ?)",
                 (task.id, task.text, int(task.done), today.isoformat(), now),
             )
         elif before != task.done:

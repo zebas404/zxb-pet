@@ -147,3 +147,25 @@ def test_context_uses_relative_days_for_recent_activity(settings):
 
 def test_json_declares_utf8_charset(client):
     assert client.get("/health").headers["content-type"] == "application/json; charset=utf-8"
+
+
+def test_ui_is_served(client):
+    res = client.get("/")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/html")
+    assert "<title>Zebot</title>" in res.text
+    for asset in ("app.js", "zebot-sprite.js", "style.css", "favicon.svg"):
+        assert client.get(f"/static/{asset}").status_code == 200, asset
+
+
+def test_ui_is_not_in_openapi(client):
+    assert "/" not in client.get("/openapi.json").json()["paths"]
+
+
+def test_parallel_snapshots_do_not_race(settings):
+    # The UI requests /pet, /tasks and /study at once on a fresh database.
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        snaps = list(pool.map(lambda _: main.take_snapshot(settings), range(8)))
+    assert len({len(s.tasks) for s in snaps}) == 1
