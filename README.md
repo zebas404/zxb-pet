@@ -107,4 +107,4 @@ curl -4 http://localhost:8000/health
 - [x] F3 · Web UI (original pixel-art sprite)
 - [x] F4 · Tauri shell (transparent, always-on-top, autostart)
 - [x] F5 · "I did X" capture to Inbox + pet state tuning
-- [ ] F6 · Extras: macOS shell (to decide). Anki and Job Hunter stats dropped
+- [x] F6 · Extras (Anki, Job Hunter stats, macOS shell): dropped. MVP done
