@@ -201,7 +201,8 @@ body {
 /* --- Widget mode (Tauri desktop window): only the pet and its bubble ------- */
 
 body.widget { background: transparent; min-height: 0; }
-body.widget .app { max-width: 300px; padding: 8px; gap: 0; }
+/* Zebot stays anchored to the bottom; the bubble grows or collapses above it. */
+body.widget .app { max-width: 300px; padding: 8px; gap: 0; box-sizing: border-box; min-height: 100vh; align-content: end; }
 body.widget .panel, body.widget .footer, body.widget .refresh { display: none; }
 body.widget .bubble { font-size: 13px; padding: 10px 12px; max-height: 220px; overflow: auto; }
 body.widget .bubble.collapsed { display: none; }
