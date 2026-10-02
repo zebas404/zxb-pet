@@ -16,6 +16,15 @@ const QUIPS = {
   dormido: ["zzz… el servidor no responde.", "zzz… cinco minutos más…"],
 };
 
+const CAPTURE_QUIPS = [
+  "GG, anotado. La XP llega en un minuto.",
+  "Logro desbloqueado. Va al Inbox.",
+  "Eso cuenta. Buff de energía en camino.",
+  "Anotado. Ni un speedrunner lo hace mejor.",
+];
+// Syncthing takes about a minute to bring the note to the server.
+const CAPTURE_CHECKS_MS = [75 * 1000, 150 * 1000];
+
 const state = { mood: "normal", jumpStart: 0, waveUntil: 0, briefingDate: null, sleeping: false };
 
 if (WIDGET) document.body.classList.add("widget");
@@ -104,6 +113,7 @@ async function loadBriefing(refresh) {
 
 function renderPet(p) {
   if (!state.sleeping) state.mood = p.mood;
+  state.xp = p.xp;
   $("pet-name").textContent = p.name;
   $("mood").textContent = p.mood;
   $("pet").setAttribute("aria-label", `${p.name}, ${p.mood}`);
@@ -249,8 +259,9 @@ let quipTimer = null;
 function quip(text) {
   let q = document.querySelector(".quip");
   if (!q) {
-    q = el("p", { className: "quip", role: "status" });
-    $("pet-btn").after(q);
+    // Widget: a floating tag above Zebot, so the layout doesn't jump.
+    q = el(WIDGET ? "span" : "p", { className: "quip", role: "status" });
+    if (WIDGET) $("pet-btn").append(q); else $("pet-btn").after(q);
   }
   q.textContent = text;
   q.hidden = false;
@@ -276,6 +287,44 @@ function el(tag, props = {}, ...children) {
   const node = Object.assign(document.createElement(tag), props);
   node.append(...children);
   return node;
+}
+
+// Capture ("ya hice X"): only the desktop shell can write to the vault Inbox.
+async function refreshPet() {
+  try {
+    const before = Number($("level").textContent) || 0;
+    const xpBefore = state.xp;
+    const p = await getJSON("/pet");
+    if (state.sleeping) return;
+    renderPet(p);
+    if (p.level > before && before > 0) { jump(); quip(`¡Level up! Nivel ${p.level}.`); }
+    else if (xpBefore !== undefined && p.xp > xpBefore) quip(`+${p.xp - xpBefore} XP. Ahora sí.`);
+  } catch { /* the regular poll handles a dead server */ }
+}
+
+if (WIDGET && window.__TAURI__) {
+  const form = $("capture");
+  const input = $("capture-input");
+  form.hidden = false;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const titulo = input.value.trim();
+    if (!titulo || input.disabled) return;
+    input.disabled = true;
+    try {
+      await window.__TAURI__.core.invoke("crear_nota_inbox", { titulo });
+      input.value = "";
+      jump();
+      quip(CAPTURE_QUIPS[Math.floor(Math.random() * CAPTURE_QUIPS.length)]);
+      CAPTURE_CHECKS_MS.forEach((ms) => setTimeout(refreshPet, ms));
+    } catch (err) {
+      console.error("capture:", err);
+      quip(`No pude anotarlo: ${err}`);
+    } finally {
+      input.disabled = false;
+      input.focus();
+    }
+  });
 }
 
 refreshAll();

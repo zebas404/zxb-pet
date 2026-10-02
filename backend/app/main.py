@@ -15,11 +15,12 @@ from pydantic import BaseModel
 from . import db
 from .briefing import build_context, generate_briefing
 from .config import Settings, get_settings
-from .pet import PetState, compute_pet
+from .pet import MAX_CAPTURES_PER_DAY, PetState, compute_pet
+from .vault.inbox import collect_captures
 from .vault.study import Roadmap, collect_study
 from .vault.tasks import Task, collect_tasks
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -78,14 +79,16 @@ def study_pace(study: list[Roadmap]) -> float | None:
 
 
 def take_snapshot(settings: Settings) -> Snapshot:
-    """Parse the vault, record newly completed tasks and compute the pet state."""
+    """Parse the vault, record new activity (closed tasks, captures) and compute the pet state."""
     if not settings.vault_path.is_dir():
         raise HTTPException(status_code=503, detail=f"Vault no disponible en {settings.vault_path}")
     today = settings.today()
     tasks = collect_tasks(settings.vault_path, today)
     study = collect_study(settings.vault_path, today)
+    captures = collect_captures(settings.vault_path, today)
     with _sync_lock, db.connect(settings.db_path) as conn:
         db.sync_tasks(conn, tasks, today)
+        db.sync_captures(conn, captures, MAX_CAPTURES_PER_DAY)
         activity = db.activity_by_day(conn)
         since = db.tracking_since(conn)
         recent = db.recent_activity(conn, today - timedelta(days=7))

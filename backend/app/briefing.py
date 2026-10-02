@@ -14,6 +14,10 @@ from .vault.tasks import Task
 log = logging.getLogger(__name__)
 
 MAX_TASKS_IN_PROMPT = 8
+ACTIVITY_KINDS = {
+    "task_done": "tarea cerrada en el vault",
+    "capture": "se lo contó a Zebot (\"ya hice…\")",
+}
 WEEKDAYS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
 TONE = {
@@ -74,7 +78,11 @@ def build_context(
             for r in study
         ],
         "actividad_reciente": [
-            {"cuando": _relative_day(date.fromisoformat(a["day"]), today), "tarea_cerrada": a["detail"]}
+            {
+                "cuando": _relative_day(date.fromisoformat(a["day"]), today),
+                "tipo": ACTIVITY_KINDS.get(a["kind"], a["kind"]),
+                "que": a["detail"],
+            }
             for a in recent[:5]
         ],
     }

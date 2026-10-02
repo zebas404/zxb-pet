@@ -204,10 +204,36 @@ body.widget { background: transparent; min-height: 0; }
 /* Zebot stays anchored to the bottom; the bubble grows or collapses above it. */
 body.widget .app { max-width: 300px; padding: 8px; gap: 0; box-sizing: border-box; min-height: 100vh; align-content: end; }
 body.widget .panel, body.widget .footer, body.widget .refresh { display: none; }
-body.widget .bubble { font-size: 13px; padding: 10px 12px; max-height: 220px; overflow: auto; }
+body.widget .bubble { font-size: 13px; padding: 10px 12px; max-height: 190px; overflow: auto; }
 body.widget .bubble.collapsed { display: none; }
 body.widget #pet { width: 128px; height: 128px; }
 body.widget .mood-line { font-size: 11px; text-shadow: 0 0 3px var(--bg), 0 0 2px var(--bg); }
+body.widget .pet-btn { position: relative; }
+body.widget .quip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 270px;
+  background: var(--bg);
+  pointer-events: none;
+}
+
+.capture { width: 100%; margin-top: 6px; }
+.capture[hidden] { display: none; }
+.capture input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font: 12px var(--mono);
+}
+.capture input::placeholder { color: var(--muted); }
+.capture input:focus { outline: none; border-color: var(--pet); }
+.capture input:disabled { opacity: 0.6; }
 
 @media (max-width: 420px) {
   #pet { width: 160px; height: 160px; }

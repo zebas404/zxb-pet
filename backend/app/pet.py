@@ -17,6 +17,7 @@ ENERGY_DECAY_PER_IDLE_DAY = {"casual": 10, "normal": 15, "hardcore": 25}
 IDLE_DAYS_TO_HARDEN = 3
 STREAK_DAYS_TO_SOFTEN = 7
 XP_PER_ACTIVITY = 10
+MAX_CAPTURES_PER_DAY = 5  # "ya hice X" notes that count per day; more is XP farming
 XP_PER_LEVEL = 100
 
 

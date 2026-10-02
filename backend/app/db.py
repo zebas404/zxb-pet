@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from .vault.inbox import Capture
 from .vault.tasks import Task
 
 SCHEMA = """
@@ -76,6 +77,28 @@ def sync_tasks(conn: sqlite3.Connection, tasks: list[Task], today: date) -> int:
         if task.done and not before and not baseline:
             completed += log_activity(conn, today, "task_done", task.id, task.text)
     return completed
+
+
+def sync_captures(conn: sqlite3.Connection, captures: list[Capture], max_per_day: int) -> int:
+    """Log Inbox captures as activity, at most ``max_per_day`` per day (no XP farming).
+
+    Returns how many new captures were logged.
+    """
+    logged = 0
+    for capture in captures:
+        day = capture.day.isoformat()
+        seen = conn.execute(
+            "SELECT 1 FROM activity WHERE kind = 'capture' AND ref = ?", (capture.ref,)
+        ).fetchone()
+        if seen:
+            continue
+        (count,) = conn.execute(
+            "SELECT COUNT(*) FROM activity WHERE kind = 'capture' AND day = ?", (day,)
+        ).fetchone()
+        if count >= max_per_day:
+            continue
+        logged += log_activity(conn, capture.day, "capture", capture.ref, capture.title)
+    return logged
 
 
 def log_activity(conn: sqlite3.Connection, day: date, kind: str, ref: str, detail: str | None = None) -> int:

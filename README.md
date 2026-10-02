@@ -79,7 +79,7 @@ Then open http://127.0.0.1:8000/docs. Without `ANTHROPIC_API_KEY`, `/briefing` f
 
 ## Desktop shell
 
-[`desktop/`](desktop/README.md) is a ~4 MB Tauri v2 app: a transparent, frameless, always-on-top window that loads `/?widget` from the server, with tray menu, autostart and a sleeping fallback when the server is down. Its single local capability, creating **new** notes in the vault Inbox, is denied by default and granted at runtime only to the server origin (verified: other origins get `not allowed by ACL`).
+[`desktop/`](desktop/README.md) is a ~4 MB Tauri v2 app: a transparent, frameless, always-on-top window that loads `/?widget` from the server, with tray menu, autostart and a sleeping fallback when the server is down. Its single local capability, creating **new** notes in the vault Inbox, is denied by default and granted at runtime only to the server origin (verified: other origins get `not allowed by ACL`). The widget's "Ya hice…" box uses it to capture what you did; the backend reads those `origen: mascota` notes and counts them as activity (up to 5 per day, so no XP farming).
 
 ## Deploy to the homelab
 

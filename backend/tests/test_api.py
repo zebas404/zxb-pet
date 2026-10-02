@@ -136,11 +136,11 @@ def test_context_uses_relative_days_for_recent_activity(settings):
 
     today = date(2026, 10, 6)
     pet = compute_pet("Zebot", {today: 1}, today, "normal")
-    recent = [{"day": "2026-10-06", "kind": "task_done", "detail": "A"}, {"day": "2026-10-03", "kind": "task_done", "detail": "B"}]
+    recent = [{"day": "2026-10-06", "kind": "task_done", "detail": "A"}, {"day": "2026-10-03", "kind": "capture", "detail": "B"}]
     ctx = briefing_module.build_context(today, [], [], pet, recent)
     assert ctx["actividad_reciente"] == [
-        {"cuando": "hoy", "tarea_cerrada": "A"},
-        {"cuando": "hace 3 días", "tarea_cerrada": "B"},
+        {"cuando": "hoy", "tipo": "tarea cerrada en el vault", "que": "A"},
+        {"cuando": "hace 3 días", "tipo": 'se lo contó a Zebot ("ya hice…")', "que": "B"},
     ]
     assert ctx["mascota"]["racha_dias_seguidos_con_actividad"] == 1
 
