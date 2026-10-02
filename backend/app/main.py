@@ -36,7 +36,22 @@ app = FastAPI(
     description="Backend de la mascota virtual Zebot.",
     default_response_class=UTF8JSONResponse,
 )
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+class RevalidatedStaticFiles(StaticFiles):
+    """Static assets that the browser must revalidate (ETag -> 304) on every load.
+
+    Without Cache-Control, WebView2 caches app.js heuristically and the desktop
+    shell keeps running an old UI after a deploy.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", RevalidatedStaticFiles(directory=STATIC_DIR), name="static")
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 

@@ -169,3 +169,11 @@ def test_parallel_snapshots_do_not_race(settings):
     with ThreadPoolExecutor(max_workers=8) as pool:
         snaps = list(pool.map(lambda _: main.take_snapshot(settings), range(8)))
     assert len({len(s.tasks) for s in snaps}) == 1
+
+
+def test_ui_assets_are_revalidated(client):
+    # The desktop shell (WebView2) must pick up a new app.js right after a deploy.
+    for path in ("/", "/static/app.js", "/static/style.css"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-cache"

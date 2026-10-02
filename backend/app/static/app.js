@@ -280,10 +280,26 @@ function el(tag, props = {}, ...children) {
 
 refreshAll();
 
-// Desktop shell (Tauri): the frameless window is dragged by the name line.
+// Desktop shell (Tauri): the frameless window is dragged by Zebot or its name line.
+// Drag starts only after a few pixels of movement, so a plain click still pokes Zebot.
+// Explicit startDragging() instead of data-tauri-drag-region: a missing permission
+// shows up in the console instead of failing silently.
 if (WIDGET && window.__TAURI__) {
-  const handle = document.querySelector(".mood-line");
-  for (const node of [handle, ...handle.querySelectorAll("*")]) node.setAttribute("data-tauri-drag-region", "");
-  handle.style.cursor = "move";
-  handle.title = "Arrastra para mover a Zebot";
+  const DRAG_THRESHOLD = 4;
+  let press = null;
+  for (const handle of [$("pet-btn"), document.querySelector(".mood-line")]) {
+    handle.addEventListener("mousedown", (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault(); // no text selection while dragging
+      press = { x: event.screenX, y: event.screenY };
+    });
+    handle.style.cursor = "move";
+    handle.title = "Arrastra para mover a Zebot";
+  }
+  window.addEventListener("mouseup", () => { press = null; });
+  window.addEventListener("mousemove", (event) => {
+    if (!press || Math.hypot(event.screenX - press.x, event.screenY - press.y) < DRAG_THRESHOLD) return;
+    press = null;
+    window.__TAURI__.window.getCurrentWindow().startDragging().catch((err) => console.error("drag:", err));
+  });
 }
