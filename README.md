@@ -106,5 +106,5 @@ curl -4 http://localhost:8000/health
 - [x] F2 · Deployment (Syncthing + Docker Compose on Proxmox VM)
 - [x] F3 · Web UI (original pixel-art sprite)
 - [x] F4 · Tauri shell (transparent, always-on-top, autostart)
-- [ ] F5 · "I did X" capture to Inbox + pet state tuning
-- [ ] F6 · Extras (Anki, Job Hunter stats, macOS shell)
+- [x] F5 · "I did X" capture to Inbox + pet state tuning
+- [ ] F6 · Extras: macOS shell (to decide). Anki and Job Hunter stats dropped
