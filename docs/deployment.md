@@ -41,7 +41,15 @@ flowchart LR
 ssh zxb-app01 sudo zebot-deploy
 ```
 
-[`deploy/zebot-deploy.sh`](../deploy/zebot-deploy.sh) is installed root-owned as `/usr/local/bin/zebot-deploy`. A sudoers rule allows exactly that command, with **no arguments**, without a password; every other `sudo` still asks for one. The script runs `git pull` as the repo owner, then `docker compose up -d --build` and prunes dangling images. Changing the script in the repo does not change what runs as root until it is explicitly reinstalled.
+[`deploy/zebot-deploy.sh`](../deploy/zebot-deploy.sh) is installed root-owned as `/usr/local/bin/zebot-deploy`. A sudoers rule allows exactly that command, with **no arguments**, without a password (plus the `logs` mode below); every other `sudo` still asks for one. The script runs `git pull` as the repo owner, then `docker compose up -d --build` and prunes dangling images. Changing the script in the repo does not change what runs as root until it is explicitly reinstalled.
+
+To read the container logs (last 200 lines, read-only):
+
+```powershell
+ssh zxb-app01 sudo zebot-deploy logs
+```
+
+A second sudoers rule allows exactly `zebot-deploy logs`. The script rejects any other argument, so the rules never expose `docker` itself.
 
 Trade-off: Docker access is root-equivalent, so whoever controls `main` controls what gets built. That is acceptable for a single-owner repo where every change is a reviewed commit.
 
